@@ -1,0 +1,57 @@
+version: "3.7"
+services:
+  app:
+    depends_on:
+      - db
+    build:
+      args:
+        user: student
+        uid: 1000
+      context: ./services/app/
+      dockerfile: Dockerfile
+    image: reviewapp
+    container_name: review-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./services/app/laravel/:/var/www
+    networks:
+      - frontend
+      - backend
+
+  db:
+    image: mysql:8.0
+    container_name: review-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: local
+      SERVICE_NAME: mysql
+    volumes:
+      - ./services/mysql:/docker-entrypoint-initdb.d
+      - ./services/mysql/data:/var/lib/mysql
+    networks:
+      - backend
+
+  nginx:
+    depends_on:
+      - app
+    image: nginx:alpine
+    container_name: review-nginx
+    restart: unless-stopped
+    ports:
+      - 8000:80
+    volumes:
+      - ./services/app/laravel/:/var/www
+      - ./services/nginx:/etc/nginx/conf.d/
+    networks:
+      - backend
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
